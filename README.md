@@ -8,7 +8,7 @@ ScraperGooleScholar is a Python tool designed to predict the gender information 
 
 ### Module installation 
 ``` 
-    git clone https://github.com/ScraperGooleScholar
+    git clone https://github.com/MARIA2M/ScraperGooleScholar.git
 ```
 
 ### VPN installation 
@@ -37,6 +37,8 @@ ScraperGooleScholar arguments:
 
 
 ## Example
+
+In the folder which contains the clonned repository:
 
 Simple execution: 
 ``` bash

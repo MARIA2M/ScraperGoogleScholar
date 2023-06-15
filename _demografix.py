@@ -6,21 +6,6 @@ from pyagify.agify import GenderizeClient, NationalizeClient
 
 class GenderPredictor:
 
-    AUTHORS_INFO = {
-        'nationalize':{
-            'surname':{
-                'country_id':"",
-                'probability':""
-            }
-        },       
-        'genderize':{
-            'name':{
-                'gender':"",
-                'probability':""
-            }
-        }
-    }
-
     def get_gender ( author_name: str, author_surname: str, nationality: str ) -> Dict[str,Dict[str,str]]:
         """
         Predict gender of the name.
@@ -30,6 +15,8 @@ class GenderPredictor:
             :param nationality:    Author's surname nation
 
         """
+        AUTHOR_GENDER = {'genderize':{ 'name':{'gender':"", 'probability':""}}}
+
         gender = GenderizeClient()
         author = f"{author_name} {author_surname}"
         gender_authors = { author : GenderPredictor.AUTHORS_INFO['genderize'] }
@@ -60,14 +47,16 @@ class GenderPredictor:
             :param author_surname: Author's surname
 
         """
+        AUTHORS_NATION = {'nationalize':{'surname':{'country_id':"",'probability':""}}}
+
         nation = NationalizeClient()
         author = f"{author_name} {author_surname}"
-        nation_author = { author : GenderPredictor.AUTHORS_INFO['nationalize'] }
- 
+        nation_author = { author : AUTHORS_NATION['nationalize'] }
+        print(nation_author)
         # Exceptions
         if "-"  in author_surname:
             author_surname = author_surname.split("-")[0]
-
+       
         if author != ' ' :
             if not nation.get_raw(author_surname)['country']:
                 nation_author[author]['surname']['country_id'] = nation.get_raw(author_name)['country'][0]['country_id']
@@ -75,7 +64,7 @@ class GenderPredictor:
             else:
                 nation_author[author]['surname']['country_id'] = nation.get_raw(author_surname)['country'][0]['country_id']
                 nation_author[author]['surname']['probability'] = nation.get_raw(author_surname)['country'][0]['probability']
-       
+
         return nation_author
 
     
