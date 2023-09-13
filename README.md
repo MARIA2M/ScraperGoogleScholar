@@ -1,14 +1,14 @@
 
-# ScraperGooleScholar
+# ScraperGoogleScholar
 
-ScraperGooleScholar is a Python tool designed to predict the gender information of authors in scientific papers available on Google Scholar. This tool utilizes scraping methods to extract metadata information from the papers and cross-references the DOIs and authors' names with the Crossref database. To perform the gender predictions, ScraperGooleScholar leverages APIs such as Genderize and Nationalize.
+ScraperGoogleScholar is a Python tool designed to predict the gender information of authors in scientific papers available on Google Scholar. This tool utilizes scraping methods to extract metadata information from the papers and cross-references the DOIs and authors' names with the Crossref database. To perform the gender predictions, ScraperGoogleScholar leverages APIs such as Genderize and Nationalize.
 
 
 ## Installation
 
 ### Module installation 
 ``` 
-    git clone https://github.com/MARIA2M/ScraperGooleScholar.git
+    git clone https://github.com/MARIA2M/ScraperGoogleScholar.git
 ```
 
 ### VPN installation 
@@ -18,21 +18,21 @@ Frequent searches on the web using Google Scholar may result in temporary bans l
 
 ## How to use
 
-ScraperGooleScholar arguments:
+ScraperGoogleScholar arguments:
 
-| Arguments           | Description                                                                              | Type    |
-| ------------------- | ---------------------------------------------------------------------------------------- | ------- |
-| \-q, \-\-query      | Query to make on Google Scholar or Google Scholar page link. Default: None               | string  |
-| \-n, \-\-numentries | Number of entries to retrieve from the search query. Default: 1000                       | integer |
-| \-od,\-\-outdir     | Directory where save the output CSV. Default: '.'                                        | string  |
-| \-v, \-\-verbose    | Shows messages to follow the process execution. Default: True                            | boolean |
-| \-h                 | Shows the help                                                                           |    --   |
+| Arguments           | Description                                                                   | Type    |
+| ------------------- | ------------------------------------------------------------------------------| ------- |
+| \-q, \-\-query      | Query to make on Google Scholar or Google Scholar page link. Default: None    | string  |
+| \-n, \-\-numentries | Number of entries to retrieve from the search query. Default: 1000            | integer |
+| \-od,\-\-outdir     | Directory where save the output CSV. Default: '.'                             | string  |
+| \-v, \-\-verbose    | Shows messages to follow the process execution. Default: True                 | boolean |
+| \-h                 | Shows the help                                                                |    --   |
 
 
 ### Steps
     
 1. Connect through the vpn to a random server.
-2. Execute ScraperGooleScholar in terminal. The argument **--query**  is required. 
+2. Execute ScraperGoogleScholar in terminal. The argument **--query**  is required. 
 3. If connection fails, switch the proxy manually and press enter to continue.
 
 
@@ -42,12 +42,12 @@ In the folder which contains the clonned repository:
 
 Simple execution: 
 ``` bash
-    python -m ScraperGooleScholar --query "Sex and gender bias in artificial intelligence"
+    python -m ScraperGoogleScholar --query "Sex and gender bias in artificial intelligence"
 ```
 
 Recomended execution:
 ``` bash
-    python -m ScraperGooleScholar --query "Sex and gender bias in artificial intelligence" --numentries 5 --outdir output 
+    python -m ScraperGoogleScholar --query "Sex and gender bias in artificial intelligence" --numentries 5 --outdir output 
 ```
 
 
