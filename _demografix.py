@@ -52,7 +52,7 @@ class GenderPredictor:
         nation = NationalizeClient()
         author = f"{author_name} {author_surname}"
         nation_author = { author : AUTHORS_NATION['nationalize'] }
-        print(nation_author)
+        
         # Exceptions
         if "-"  in author_surname:
             author_surname = author_surname.split("-")[0]
