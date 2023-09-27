@@ -19,7 +19,7 @@ class GenderPredictor:
 
         gender = GenderizeClient()
         author = f"{author_name} {author_surname}"
-        gender_authors = { author : GenderPredictor.AUTHORS_INFO['genderize'] }
+        gender_authors = { author : AUTHOR_GENDER['genderize'] }
         
         # Exceptions
         if "-"  in author_name:
