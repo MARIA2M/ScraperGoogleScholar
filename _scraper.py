@@ -60,7 +60,7 @@ class ScraperGooleScholar:
 
                 # search_query = self._scholarly.search_pubs(query, patents=False)
                 search_query = scholarly.search_pubs(query, patents=False)
-
+                
             except Exception as e:
                 print('\n{}'.format(e))
                 print(
@@ -81,6 +81,26 @@ class ScraperGooleScholar:
 
         return search_query
 
+    def get_downloaded_entries ( self, query:str, outdir:str ):
+        """ """
+        # Final csv file
+        # date = time.strftime('%Y-%m-%d', time.localtime(time.time()))
+        # regex = re.compile('[^a-zA-Z]')
+        # outfile = Path(outdir) / (date + '_' +
+        #                             regex.sub('', query.lower())[:15] + '.csv')
+
+        regex = re.compile('[^a-zA-Z]')
+        outfile = Path(outdir) / (regex.sub('', query.lower())[:15] + '.csv')
+       
+        if outfile.exists():
+            print("existe")
+            with open(outfile, 'r', newline='', encoding='utf-8') as csvfile:
+                reader = csv.DictReader(csvfile)
+                return [ row.get('GSRANK') for row in reader ]
+        else:
+            print("no existe")
+            return []
+
     def check_availability( self, query:str, verbose: bool ) -> int:
         """
         Check if all sheets are available to be consulted in Google Scholar for a query. 
@@ -90,7 +110,6 @@ class ScraperGooleScholar:
             :param verbose: Show messages
 
         """
-
         url = f"https://scholar.google.com/scholar?start=940&q={query}"
         count = 940
         page = 940
@@ -122,7 +141,7 @@ class ScraperGooleScholar:
         return count
 
 
-    def get_entries( self, search_query:Iterator, numentries:int, verbose:bool ) -> List[Dict[str,str]]:
+    def get_entry( self, search_query:Iterator, numentry:int, numentries:int, entries_to_download:List[str], verbose:bool ) -> List[Dict[str,str]]:
         """
         Process data information from Google Scholar query.
         Cross-reference the DOIs and authors' names with the Crossref database.
@@ -133,106 +152,126 @@ class ScraperGooleScholar:
             :param verbose:      Show messages
 
         """
-
         attempt = 0
-        entries = [dict() for x in range(numentries)]
-        for i in range(numentries):
-            for attempt in range(ScraperGooleScholar.NUM_ATTEMPTS):
-                try:
-                    # Accessing to the each element of the query object 
-                    entrydict = next(search_query)
-                   
-                    # Authors info
-                    authors = re.sub(r'[\[\]\']', '', str(
-                        entrydict['bib'][ScraperGooleScholar.AUTHOR_KEY.lower()]).replace(',', ';'))
+        entries = dict()
+        for attempt in range(ScraperGooleScholar.NUM_ATTEMPTS):
+            try:
+                # Accessing to the each element of the query object 
+                entrydict = next(search_query)
+            
+                if str(numentry) not in entries_to_download:
+                    # time.sleep(1)
+                    return 
+                
+                # Authors info
+                authors = re.sub(r'[\[\]\']', '', str(
+                    entrydict['bib'][ScraperGooleScholar.AUTHOR_KEY.lower()]).replace(',', ';'))
 
-                    # Authors IDs
-                    authors_ids = re.sub(r'[\[\]\']', '', str(
-                        entrydict[ScraperGooleScholar.AUTHOR_ID.lower()]).replace(',', ';'))
+                # Authors IDs
+                authors_ids = re.sub(r'[\[\]\']', '', str(
+                    entrydict[ScraperGooleScholar.AUTHOR_ID.lower()]).replace(',', ';'))
 
-                    # Year of publication info
-                    pubyear = str(entrydict['bib'][ScraperGooleScholar.PUB_YEAR_KEY.lower()])
+                # Year of publication info
+                pubyear = str(entrydict['bib'][ScraperGooleScholar.PUB_YEAR_KEY.lower()])
 
-                    # Title of the article
-                    title = str(entrydict['bib'][ScraperGooleScholar.TITLE_KEY.lower()])
+                # Title of the article
+                title = str(entrydict['bib'][ScraperGooleScholar.TITLE_KEY.lower()])
 
-                    # Publication URL
-                    if (not ('pub_url' in entrydict)):
-                        entrydict['pub_url'] = ''
+                # Publication URL
+                if (not ('pub_url' in entrydict)):
+                    entrydict['pub_url'] = ''
 
-                    crossref_doi, crossref_author = CrossrefAPI.petition( authors, pubyear, title, i, verbose )
+                crossref_doi, crossref_author = CrossrefAPI.petition( authors, pubyear, title, numentry, verbose )
 
-                    # DOIs 
-                    doi = CrossrefAPI.get_doi( crossref_doi )
-     
-                    # All authors
-                    authors_fullnames = CrossrefAPI.get_fullname_authors( crossref_author )
+                # DOIs 
+                doi = CrossrefAPI.get_doi( crossref_doi )
+    
+                # All authors
+                authors_fullnames = CrossrefAPI.get_fullname_authors( crossref_author )
+                
+                # First author
+                fauthor_name, fauthor_surname = CrossrefAPI.get_fist_author( crossref_author )
+                fauthor_nation = GenderPredictor.get_nation( fauthor_name, fauthor_surname ) 
+                fauthor_gender = GenderPredictor.get_gender( fauthor_name, fauthor_surname, fauthor_nation) 
+                
+                first_author = f"{fauthor_name} {fauthor_surname}"
+                
+                # Last author 
+                lauthor_name, lauthor_surname = CrossrefAPI.get_last_author( crossref_author )
+                lauthor_nation = GenderPredictor.get_nation( lauthor_name, lauthor_surname ) 
+                lauthor_gender = GenderPredictor.get_gender( lauthor_name, lauthor_surname, lauthor_nation ) 
+
+                last_author = f"{lauthor_name} {lauthor_surname}"
+               
+                # Save information of each row in the csv
+                entries = {
+                    # ScraperGooleScholar.AUTHOR_KEY: authors,
+                    ScraperGooleScholar.GSRANK_KEY: str(entrydict[ScraperGooleScholar.GSRANK_KEY.lower()]),
+                    ScraperGooleScholar.FULL_AUTHORS: authors_fullnames,
+                    ScraperGooleScholar.FIRST_AUTHOR: first_author,
+                    ScraperGooleScholar.LAST_AUTHOR: last_author,
+                    ScraperGooleScholar.AUTHOR_ID:authors_ids,
+                    ScraperGooleScholar.PUB_YEAR_KEY: pubyear,
+                    ScraperGooleScholar.TITLE_KEY: title,
+                    ScraperGooleScholar.SCHOLAR_LINK_KEY: 'https://scholar.google.com' + entrydict['url_scholarbib'].replace('?q=info:', '?cluster=').replace(':scholar.google.com/&output=cite&scirp=' + str(numentry), ''),
+                    ScraperGooleScholar.PUB_URL_KEY: str(entrydict[ScraperGooleScholar.PUB_URL_KEY.lower()]),
+                    ScraperGooleScholar.NUM_CITATIONS_KEY: str(
+                        entrydict[ScraperGooleScholar.NUM_CITATIONS_KEY.lower()]),
+                    ScraperGooleScholar.DOI_KEY: doi,
+                    ScraperGooleScholar.FIRST_AUTHOR_GENDER: fauthor_gender[first_author]['name']['gender'],
+                    ScraperGooleScholar.FIRST_AUTHOR_GENDER_PROBABILITY: str(fauthor_gender[first_author]['name']['probability']),
+                    ScraperGooleScholar.FIRST_AUTHOR_NATION: fauthor_nation[first_author]['surname']['country_id'],
+                    ScraperGooleScholar.FIRST_AUTHOR_NATION_PROBABILITY:  str(fauthor_nation[first_author]['surname']['probability']),
+                    ScraperGooleScholar.LAST_AUTHOR_GENDER: lauthor_gender[last_author]['name']['gender'],
+                    ScraperGooleScholar.LAST_AUTHOR_GENDER_PROBABILITY: str(lauthor_gender[last_author]['name']['probability']),
+                    ScraperGooleScholar.LAST_AUTHOR_NATION: lauthor_nation[last_author]['surname']['country_id'],
+                    ScraperGooleScholar.LAST_AUTHOR_NATION_PROBABILITY: str(lauthor_nation[last_author]['surname']['probability'])
+                }
+
+                # Show messages that informs you about the number of entries processed
+                if ((numentry + 1) % 10 == 0 or (numentry + 1) == numentries):
+                    print('{} entries scraped'.format(numentry + 1))
                     
-                    # First author
-                    fauthor_name, fauthor_surname = CrossrefAPI.get_fist_author( crossref_author )
-                    fauthor_nation = GenderPredictor.get_nation( fauthor_name, fauthor_surname ) 
-                    fauthor_gender = GenderPredictor.get_gender( fauthor_name, fauthor_surname, fauthor_nation) 
-                   
-                    first_author = f"{fauthor_name} {fauthor_surname}"
-
-                    # Last author 
-                    lauthor_name, lauthor_surname = CrossrefAPI.get_last_author( crossref_author )
-                    lauthor_nation = GenderPredictor.get_nation( lauthor_name, lauthor_surname ) 
-                    lauthor_gender = GenderPredictor.get_gender( lauthor_name, lauthor_surname, lauthor_nation ) 
-
-                    last_author = f"{lauthor_name} {lauthor_surname}"
+                # if (verbose and (i + 1) % 10 == 0 or (i + 1) == numentries):
+                #     print('{} entries scraped'.format(i + 1))
                     
-                    # Save information of each row in the csv
-                    entries[i] = {
-                        # ScraperGooleScholar.AUTHOR_KEY: authors,
-                        ScraperGooleScholar.FULL_AUTHORS: authors_fullnames,
-                        ScraperGooleScholar.FIRST_AUTHOR: first_author,
-                        ScraperGooleScholar.LAST_AUTHOR: last_author,
-                        ScraperGooleScholar.PUB_YEAR_KEY: pubyear,
-                        ScraperGooleScholar.TITLE_KEY: title,
-                        ScraperGooleScholar.SCHOLAR_LINK_KEY: 'https://scholar.google.com' + entrydict['url_scholarbib'].replace('?q=info:', '?cluster=').replace(':scholar.google.com/&output=cite&scirp=' + str(i), ''),
-                        ScraperGooleScholar.PUB_URL_KEY: str(entrydict[ScraperGooleScholar.PUB_URL_KEY.lower()]),
-                        ScraperGooleScholar.GSRANK_KEY: str(entrydict[ScraperGooleScholar.GSRANK_KEY.lower()]),
-                        ScraperGooleScholar.NUM_CITATIONS_KEY: str(
-                            entrydict[ScraperGooleScholar.NUM_CITATIONS_KEY.lower()]),
-                        ScraperGooleScholar.DOI_KEY: doi,
-                        ScraperGooleScholar.FIRST_AUTHOR_GENDER: fauthor_gender[first_author]['name']['gender'],
-                        ScraperGooleScholar.FIRST_AUTHOR_GENDER_PROBABILITY: fauthor_gender[first_author]['name']['probability'],
-                        ScraperGooleScholar.FIRST_AUTHOR_NATION: fauthor_nation[first_author]['surname']['country_id'],
-                        ScraperGooleScholar.FIRST_AUTHOR_NATION_PROBABILITY:  fauthor_nation[first_author]['surname']['probability'],
-                        ScraperGooleScholar.LAST_AUTHOR_GENDER: lauthor_gender[last_author]['name']['gender'],
-                        ScraperGooleScholar.LAST_AUTHOR_GENDER_PROBABILITY: lauthor_gender[last_author]['name']['probability'],
-                        ScraperGooleScholar.LAST_AUTHOR_NATION: lauthor_nation[last_author]['surname']['country_id'],
-                        ScraperGooleScholar.LAST_AUTHOR_NATION_PROBABILITY: lauthor_nation[last_author]['surname']['probability']
-                    }
-
-                    # Show messages that informs you about the number of entries processed
-                    if ((i + 1) % 10 == 0 or (i + 1) == numentries):
-                        print('{} entries scraped'.format(i + 1))
-                     
-                    # if (verbose and (i + 1) % 10 == 0 or (i + 1) == numentries):
-                    #     print('{} entries scraped'.format(i + 1))
-                        
-                except Exception as e:
-                    print('\n{}'.format(e))
-                    print(
-                        '[ Save Error ] There was a problem scraping a Google Scholar entry. Retrying. Attempt {}/{}'.format(attempt + 1, ScraperGooleScholar.NUM_ATTEMPTS))
-                    attempt = attempt + 1
-
-                    # If connection fails because of the proxy, try to find and connect a new one
-                    print(' '.join("[ Connection Error ]: Connecting to a new proxy. This process can takes times. \
-                                                Retrying in 15 seconds once we find a new proxy.".split()))
-                    Proxy.set_new_proxy()
-                else:
-                    break
-            else:
+            except Exception as e:
+                print('\n{}'.format(e))
                 print(
-                    '[ Critical Error ] Too many failed attempts at scraping Google Scholar. Please run the program again in 24h.')
-        
+                    '[ Save Error ] There was a problem scraping a Google Scholar entry. Retrying. Attempt {}/{}'.format(attempt + 1, ScraperGooleScholar.NUM_ATTEMPTS))
+                attempt = attempt + 1
+
+                # If connection fails because of the proxy, try to find and connect a new one
+                print(' '.join("[ Connection Error ]: Connecting to a new proxy. This process can takes times. \
+                                            Retrying in 15 seconds once we find a new proxy.".split()))
+                Proxy.set_new_proxy()
+                return entries
+            else:
+                break
+        else:
+            print(
+                '[ Critical Error ] Too many failed attempts at scraping Google Scholar. Please run the program again in 24h.')
+    
         return entries
 
+    def is_entry_in_csv(file_path, entry):
+        """
+        Check if an entry already exists in a CSV file.
+        :param file_path: Path to the CSV file.
+        :param entry: The entry (as a dictionary) to check for.
+        :return: True if the entry exists in the CSV, False otherwise.
+        """
+        try:
+            with open(file_path, 'r', newline='', encoding='utf-8') as csvfile:
+                reader = csv.DictReader(csvfile)
+                for row in reader:
+                    if row.get('GSRANK') == entry.get('GSRANK'):
+                        return True
+                return False
+        except FileNotFoundError:
+            return False
 
-    def write( self, query:str, entries: List[Dict[str,str]], numentries:int, outdir:str ) -> None:
+    def write( self, query:str, entry: List[Dict[str,str]], numentry:int, outdir:str ) -> None:
         """
         Write CSV with data.
         ------------------------------------
@@ -244,38 +283,49 @@ class ScraperGooleScholar:
         """
 
         # Final csv file
-        date = time.strftime('%Y-%m-%dT%H%M%S', time.localtime(time.time()))
+        #date = time.strftime('%Y-%m-%dT%H%M%S', time.localtime(time.time()))
+        # date = time.strftime('%Y-%m-%d', time.localtime(time.time()))
+        # regex = re.compile('[^a-zA-Z]')
+        # outfile = Path(outdir) / (date + '_' +
+        #                             regex.sub('', query.lower())[:15] + '.csv')
+
         regex = re.compile('[^a-zA-Z]')
-        outfile = Path(outdir) / (date + '_' +
-                                    regex.sub('', query.lower())[:15] + '.csv')
+        outfile = Path(outdir) / (regex.sub('', query.lower())[:15] + '.csv')
 
-        # Create and save information in csv
-        with open(str(outfile), 'w', newline='', encoding='utf-8') as csvfile:
-            fieldnames = [
-                ScraperGooleScholar.FULL_AUTHORS, 
-                ScraperGooleScholar.FIRST_AUTHOR, 
-                ScraperGooleScholar.LAST_AUTHOR, 
-                ScraperGooleScholar.AUTHOR_ID, 
-                ScraperGooleScholar.PUB_YEAR_KEY,
-                ScraperGooleScholar.TITLE_KEY, 
-                ScraperGooleScholar.SCHOLAR_LINK_KEY, 
-                ScraperGooleScholar.PUB_URL_KEY,
-                ScraperGooleScholar.GSRANK_KEY, 
-                ScraperGooleScholar.NUM_CITATIONS_KEY,
-                ScraperGooleScholar.DOI_KEY,
-                ScraperGooleScholar.FIRST_AUTHOR_GENDER,
-                ScraperGooleScholar.FIRST_AUTHOR_GENDER_PROBABILITY,
-                ScraperGooleScholar.FIRST_AUTHOR_NATION,
-                ScraperGooleScholar.FIRST_AUTHOR_NATION_PROBABILITY,
-                ScraperGooleScholar.LAST_AUTHOR_GENDER,
-                ScraperGooleScholar.LAST_AUTHOR_GENDER_PROBABILITY,
-                ScraperGooleScholar.LAST_AUTHOR_NATION,
-                ScraperGooleScholar.LAST_AUTHOR_NATION_PROBABILITY
-            ]
-            writer = csv.DictWriter(
-                csvfile, fieldnames=fieldnames, delimiter=',')
-            writer.writeheader()
-            for i in range(numentries):
-                writer.writerow(entries[i])
-
+        # Check information in csv
+        if not ScraperGooleScholar.is_entry_in_csv(outfile, entry):
+           
+            # Create and save information in csv
+            with open(str(outfile), 'a', newline='', encoding='utf-8') as csvfile:
+                fieldnames = [
+                    ScraperGooleScholar.GSRANK_KEY, 
+                    ScraperGooleScholar.FULL_AUTHORS, 
+                    ScraperGooleScholar.FIRST_AUTHOR, 
+                    ScraperGooleScholar.LAST_AUTHOR, 
+                    ScraperGooleScholar.AUTHOR_ID, 
+                    ScraperGooleScholar.PUB_YEAR_KEY,
+                    ScraperGooleScholar.TITLE_KEY, 
+                    ScraperGooleScholar.SCHOLAR_LINK_KEY, 
+                    ScraperGooleScholar.PUB_URL_KEY,
+                    ScraperGooleScholar.NUM_CITATIONS_KEY,
+                    ScraperGooleScholar.DOI_KEY,
+                    ScraperGooleScholar.FIRST_AUTHOR_GENDER,
+                    ScraperGooleScholar.FIRST_AUTHOR_GENDER_PROBABILITY,
+                    ScraperGooleScholar.FIRST_AUTHOR_NATION,
+                    ScraperGooleScholar.FIRST_AUTHOR_NATION_PROBABILITY,
+                    ScraperGooleScholar.LAST_AUTHOR_GENDER,
+                    ScraperGooleScholar.LAST_AUTHOR_GENDER_PROBABILITY,
+                    ScraperGooleScholar.LAST_AUTHOR_NATION,
+                    ScraperGooleScholar.LAST_AUTHOR_NATION_PROBABILITY
+                ]
+                writer = csv.DictWriter(
+                    csvfile, fieldnames=fieldnames, delimiter=',')
+                if  outfile.stat().st_size == 0 :
+                    writer.writeheader()
+                writer.writerow(entry)
+        
+        time.sleep(15)
         # return outfile
+
+
+    

@@ -66,6 +66,3 @@ class GenderPredictor:
                 nation_author[author]['surname']['probability'] = nation.get_raw(author_surname)['country'][0]['probability']
 
         return nation_author
-
-    
-       

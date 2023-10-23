@@ -23,7 +23,15 @@ def run ( query: str, numentries: int, outdir: str, verbose:bool ):
     """
 
     scraper = ScraperGooleScholar()
-    
+
+    # Check if previous download was runed
+    dwonloaded_entries = scraper.get_downloaded_entries(query, outdir) 
+    entries_to_download = [ str(i+1)  for i in range(numentries) if not str(i+1) in dwonloaded_entries ]
+   
+    if (verbose): 
+        print(f"Number of entries to download ({len(entries_to_download)}/{numentries})")
+
+
     # Query to Google Scholar web
     response = scraper.scrapeGS(query, numentries, outdir, verbose)
 
@@ -31,11 +39,14 @@ def run ( query: str, numentries: int, outdir: str, verbose:bool ):
     if numentries == 1000:
         numentries = scraper.check_availability( query, verbose )
 
-    # Main info from the query entries
-    entries = scraper.get_entries( response, numentries, verbose)
+    for numentry in range(numentries):
 
-    # Export to csv
-    scraper.write(query, entries, numentries, outdir)
+        # Main info from the query entries
+        entry = scraper.get_entry( response, numentry + 1, numentries, entries_to_download, verbose)
+       
+        # Export to csv
+        if entry is not None:
+            scraper.write(query, entry, numentry, outdir)
 
 
 def main():
@@ -57,7 +68,7 @@ def main():
                         help='Verbose mode.')
 
     args = parser.parse_args()
-
+ 
 
     # Arguments validation
     if args.query is None:
@@ -73,7 +84,7 @@ def main():
         print("[ Input Error ] Provide at least one of the following arguments: --outdir or -od")
         sys.exit()
     else:
-        date = time.strftime('%Y-%m-%dT%H%M%S', time.localtime(time.time()))
+        date = time.strftime('%Y-%m-%d', time.localtime(time.time()))
         outdir = Path(os.path.join(args.outdir, date))
         outdir.mkdir(parents=True,exist_ok=True)
 
