@@ -41,7 +41,7 @@ class ScraperGooleScholar:
     NUM_ATTEMPTS = 20
 
 
-    def scrapeGS( self, query:str, numentries: int, outdir: str, verbose:bool ) -> object:
+    def scrapeGS( self, query:str, numentries: int, outdir: str, vpn:str, verbose:bool ) -> object:
         """
         Submit query to GS in order to retrieve the search results from
         the webpage.
@@ -70,7 +70,7 @@ class ScraperGooleScholar:
                 # If connection fails because of the proxy, try to find and connect a new one
                 print(' '.join("[ Connection Error ]: Connecting to a new proxy. This process can takes times. \
                                                 Retrying in 15 seconds once we find a new proxy.".split()))
-                Proxy.set_new_proxy()
+                Proxy.set_new_proxy(vpn)
             else:
                 break
         else:
@@ -82,23 +82,23 @@ class ScraperGooleScholar:
         return search_query
 
     def get_downloaded_entries ( self, query:str, outdir:str ):
-        """ """
+        """ 
+        Check if the query was already done. Get all downloaded entries to avoid repeat
+        the download of these. 
+        ------------------------------------
+            :param query:   Search query to GS
+            :param outdir:  Folder where store CSV with results
+        """
         # Final csv file
-        # date = time.strftime('%Y-%m-%d', time.localtime(time.time()))
-        # regex = re.compile('[^a-zA-Z]')
-        # outfile = Path(outdir) / (date + '_' +
-        #                             regex.sub('', query.lower())[:15] + '.csv')
-
         regex = re.compile('[^a-zA-Z]')
         outfile = Path(outdir) / (regex.sub('', query.lower())[:15] + '.csv')
-       
+
+        # Get entries from previous queries
         if outfile.exists():
-            print("existe")
             with open(outfile, 'r', newline='', encoding='utf-8') as csvfile:
                 reader = csv.DictReader(csvfile)
                 return [ row.get('GSRANK') for row in reader ]
         else:
-            print("no existe")
             return []
 
     def check_availability( self, query:str, verbose: bool ) -> int:
@@ -141,7 +141,7 @@ class ScraperGooleScholar:
         return count
 
 
-    def get_entry( self, search_query:Iterator, numentry:int, numentries:int, entries_to_download:List[str], verbose:bool ) -> List[Dict[str,str]]:
+    def get_entry( self, search_query:Iterator, numentry:int, numentries:int, entries_to_download:List[str], vpn:str, verbose:bool ) -> List[Dict[str,str]]:
         """
         Process data information from Google Scholar query.
         Cross-reference the DOIs and authors' names with the Crossref database.
@@ -202,7 +202,7 @@ class ScraperGooleScholar:
                 lauthor_gender = GenderPredictor.get_gender( lauthor_name, lauthor_surname, lauthor_nation ) 
 
                 last_author = f"{lauthor_name} {lauthor_surname}"
-               
+
                 # Save information of each row in the csv
                 entries = {
                     # ScraperGooleScholar.AUTHOR_KEY: authors,
@@ -229,7 +229,7 @@ class ScraperGooleScholar:
                 }
 
                 # Show messages that informs you about the number of entries processed
-                if ((numentry + 1) % 10 == 0 or (numentry + 1) == numentries):
+                if ((numentry + 1) % 10 == 0 or (numentry + 1) == numentries + 1):
                     print('{} entries scraped'.format(numentry + 1))
                     
                 # if (verbose and (i + 1) % 10 == 0 or (i + 1) == numentries):
@@ -244,7 +244,7 @@ class ScraperGooleScholar:
                 # If connection fails because of the proxy, try to find and connect a new one
                 print(' '.join("[ Connection Error ]: Connecting to a new proxy. This process can takes times. \
                                             Retrying in 15 seconds once we find a new proxy.".split()))
-                Proxy.set_new_proxy()
+                Proxy.set_new_proxy(vpn)
                 return entries
             else:
                 break
@@ -283,18 +283,12 @@ class ScraperGooleScholar:
         """
 
         # Final csv file
-        #date = time.strftime('%Y-%m-%dT%H%M%S', time.localtime(time.time()))
-        # date = time.strftime('%Y-%m-%d', time.localtime(time.time()))
-        # regex = re.compile('[^a-zA-Z]')
-        # outfile = Path(outdir) / (date + '_' +
-        #                             regex.sub('', query.lower())[:15] + '.csv')
-
         regex = re.compile('[^a-zA-Z]')
         outfile = Path(outdir) / (regex.sub('', query.lower())[:15] + '.csv')
 
         # Check information in csv
         if not ScraperGooleScholar.is_entry_in_csv(outfile, entry):
-           
+
             # Create and save information in csv
             with open(str(outfile), 'a', newline='', encoding='utf-8') as csvfile:
                 fieldnames = [

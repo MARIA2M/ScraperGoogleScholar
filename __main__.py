@@ -11,7 +11,7 @@ from pathlib import Path
 from ._scraper import ScraperGooleScholar
 
 
-def run ( query: str, numentries: int, outdir: str, verbose:bool ):
+def run ( query: str, numentries: int, outdir: str, vpn:str, verbose:bool ):
     """
     General options management
     --------------------------------------------------------------------
@@ -27,13 +27,13 @@ def run ( query: str, numentries: int, outdir: str, verbose:bool ):
     # Check if previous download was runed
     dwonloaded_entries = scraper.get_downloaded_entries(query, outdir) 
     entries_to_download = [ str(i+1)  for i in range(numentries) if not str(i+1) in dwonloaded_entries ]
-   
+
     if (verbose): 
         print(f"Number of entries to download ({len(entries_to_download)}/{numentries})")
 
 
     # Query to Google Scholar web
-    response = scraper.scrapeGS(query, numentries, outdir, verbose)
+    response = scraper.scrapeGS(query, numentries, outdir, vpn, verbose)
 
     # Check if all the sheets are availables to consult
     if numentries == 1000:
@@ -42,8 +42,15 @@ def run ( query: str, numentries: int, outdir: str, verbose:bool ):
     for numentry in range(numentries):
 
         # Main info from the query entries
-        entry = scraper.get_entry( response, numentry + 1, numentries, entries_to_download, verbose)
-       
+        entry = scraper.get_entry( 
+            response, 
+            numentry + 1, 
+            numentries, 
+            entries_to_download, 
+            vpn,
+            verbose
+        )
+
         # Export to csv
         if entry is not None:
             scraper.write(query, entry, numentry, outdir)
@@ -64,11 +71,14 @@ def main():
     parser.add_argument('-od', '--outdir', type=str, default=".",
                         help='Set a custom path for the directory where the search .CSV files should be stored.')
 
+    parser.add_argument('-vpn', '--vpntype', type=str, default="desktop",
+                        help='Set if your are using ProtonVPN in desktop app or in cmd.')
+
     parser.add_argument('-v', '--verbose', type=bool, default=True,
                         help='Verbose mode.')
 
     args = parser.parse_args()
- 
+
 
     # Arguments validation
     if args.query is None:
@@ -88,10 +98,13 @@ def main():
         outdir = Path(os.path.join(args.outdir, date))
         outdir.mkdir(parents=True,exist_ok=True)
 
-    if args.verbose is None:
-        print("[ Input Error ] Provide at least one of the following arguments: --verbose or -v")
+    if args.vpntype is None:
+        print("[ Input Error ] Provide with the arguments --vpntype or -vpn the options 'desktop' or 'cmd' ")
         sys.exit()
 
+    if args.verbose is None:
+        print("[ Input Error ] Provide with the arguments --verbose or -v the options 'desktop' or 'cmd' ")
+        sys.exit()
 
     if (args.verbose):
         print("Google Scholar Scraper.")
@@ -100,7 +113,7 @@ def main():
         print(f"Output path: {args.outdir}")
 
     # Execution
-    run ( args.query, args.numentries, outdir, args.verbose )
+    run ( args.query, args.numentries, outdir, args.vpntype, args.verbose )
 
 if __name__ == "__main__":
     main()
