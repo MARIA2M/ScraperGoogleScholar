@@ -38,6 +38,7 @@ class ScraperGooleScholar:
     LAST_AUTHOR_PROBABILITY = 'LAST_AUTHOR_PROBABILITY'
     LAST_AUTHOR_GENDER_PROBABILITY = 'LAST_AUTHOR_GENDER_PROBABILITY'
     LAST_AUTHOR_NATION_PROBABILITY = 'LAST_AUTHOR_COUNTRY_PROBABILITY'
+    QUERY_SUCCESS = 'QUERY_SUCCESS'
     NUM_ATTEMPTS = 20
 
 
@@ -158,7 +159,7 @@ class ScraperGooleScholar:
             try:
                 # Accessing to the each element of the query object 
                 entrydict = next(search_query)
-            
+
                 if str(numentry) not in entries_to_download:
                     # time.sleep(1)
                     return 
@@ -166,47 +167,48 @@ class ScraperGooleScholar:
                 # Authors info
                 authors = re.sub(r'[\[\]\']', '', str(
                     entrydict['bib'][ScraperGooleScholar.AUTHOR_KEY.lower()]).replace(',', ';'))
-
+                
                 # Authors IDs
                 authors_ids = re.sub(r'[\[\]\']', '', str(
                     entrydict[ScraperGooleScholar.AUTHOR_ID.lower()]).replace(',', ';'))
-
+                
                 # Year of publication info
                 pubyear = str(entrydict['bib'][ScraperGooleScholar.PUB_YEAR_KEY.lower()])
-
+                
                 # Title of the article
                 title = str(entrydict['bib'][ScraperGooleScholar.TITLE_KEY.lower()])
-
+                
                 # Publication URL
                 if (not ('pub_url' in entrydict)):
                     entrydict['pub_url'] = ''
 
-                crossref_doi, crossref_author = CrossrefAPI.petition( authors, pubyear, title, numentry, verbose )
-
+                # Crossref
+                crossref_doi, crossref_author, STATUS = CrossrefAPI.petition( authors, pubyear, title, numentry, verbose )
+        
                 # DOIs 
                 doi = CrossrefAPI.get_doi( crossref_doi )
-    
+                
                 # All authors
                 authors_fullnames = CrossrefAPI.get_fullname_authors( crossref_author )
                 
                 # First author
-                fauthor_name, fauthor_surname = CrossrefAPI.get_fist_author( crossref_author )
+                fauthor_name, fauthor_surname = CrossrefAPI.get_fist_author( crossref_author, authors )
                 fauthor_nation = GenderPredictor.get_nation( fauthor_name, fauthor_surname ) 
-                fauthor_gender = GenderPredictor.get_gender( fauthor_name, fauthor_surname, fauthor_nation) 
-                
+                fauthor_gender = GenderPredictor.get_gender( fauthor_name, fauthor_surname, fauthor_nation)                 
                 first_author = f"{fauthor_name} {fauthor_surname}"
                 
                 # Last author 
-                lauthor_name, lauthor_surname = CrossrefAPI.get_last_author( crossref_author )
+                lauthor_name, lauthor_surname = CrossrefAPI.get_last_author( crossref_author, authors )
                 lauthor_nation = GenderPredictor.get_nation( lauthor_name, lauthor_surname ) 
                 lauthor_gender = GenderPredictor.get_gender( lauthor_name, lauthor_surname, lauthor_nation ) 
 
                 last_author = f"{lauthor_name} {lauthor_surname}"
-
+                
                 # Save information of each row in the csv
                 entries = {
                     # ScraperGooleScholar.AUTHOR_KEY: authors,
                     ScraperGooleScholar.GSRANK_KEY: str(entrydict[ScraperGooleScholar.GSRANK_KEY.lower()]),
+                    ScraperGooleScholar.QUERY_SUCCESS : str(STATUS),
                     ScraperGooleScholar.FULL_AUTHORS: authors_fullnames,
                     ScraperGooleScholar.FIRST_AUTHOR: first_author,
                     ScraperGooleScholar.LAST_AUTHOR: last_author,
@@ -218,6 +220,7 @@ class ScraperGooleScholar:
                     ScraperGooleScholar.NUM_CITATIONS_KEY: str(
                         entrydict[ScraperGooleScholar.NUM_CITATIONS_KEY.lower()]),
                     ScraperGooleScholar.DOI_KEY: doi,
+                
                     ScraperGooleScholar.FIRST_AUTHOR_GENDER: fauthor_gender[first_author]['name']['gender'],
                     ScraperGooleScholar.FIRST_AUTHOR_GENDER_PROBABILITY: str(fauthor_gender[first_author]['name']['probability']),
                     ScraperGooleScholar.FIRST_AUTHOR_NATION: fauthor_nation[first_author]['surname']['country_id'],
@@ -229,11 +232,9 @@ class ScraperGooleScholar:
                 }
 
                 # Show messages that informs you about the number of entries processed
-                if ((numentry + 1) % 10 == 0 or (numentry + 1) == numentries + 1):
-                    print('{} entries scraped'.format(numentry + 1))
+                if ((numentry) % 10 == 0 or (numentry + 1) == numentries + 1):
+                    print('{} entries scraped'.format(numentry))
                     
-                # if (verbose and (i + 1) % 10 == 0 or (i + 1) == numentries):
-                #     print('{} entries scraped'.format(i + 1))
                     
             except Exception as e:
                 print('\n{}'.format(e))
@@ -293,6 +294,7 @@ class ScraperGooleScholar:
             with open(str(outfile), 'a', newline='', encoding='utf-8') as csvfile:
                 fieldnames = [
                     ScraperGooleScholar.GSRANK_KEY, 
+                    ScraperGooleScholar.QUERY_SUCCESS,
                     ScraperGooleScholar.FULL_AUTHORS, 
                     ScraperGooleScholar.FIRST_AUTHOR, 
                     ScraperGooleScholar.LAST_AUTHOR, 
@@ -319,7 +321,7 @@ class ScraperGooleScholar:
                 writer.writerow(entry)
         
         time.sleep(15)
-        # return outfile
+        
 
 
     

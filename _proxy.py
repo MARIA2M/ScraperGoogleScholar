@@ -6,7 +6,6 @@ import subprocess
 from bs4 import BeautifulSoup
 
 class Proxy: 
-    """ """
 
     def set_new_proxy(vpn:str):
         """

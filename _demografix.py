@@ -22,11 +22,11 @@ class GenderPredictor:
         gender_authors = { author : AUTHOR_GENDER['genderize'] }
         
         # Exceptions
-        if "-"  in author_name:
-            author_name = author_name.split("-")[0]
+        if "-"  in author_name.replace("‐", "-"):
+            author_name = author_name.replace("‐", "-").split("-")[0]
         
-        if "." in author_name:
-            author_name = author_name.split(" ")[0]
+        if "." in author_name.replace(".", "."):
+            author_name = author_name.replace(".", ".").split(".")[0]
 
         if author != ' ' :
             nation = nationality[author]
@@ -52,17 +52,20 @@ class GenderPredictor:
         nation = NationalizeClient()
         author = f"{author_name} {author_surname}"
         nation_author = { author : AUTHORS_NATION['nationalize'] }
-        
+
         # Exceptions
-        if "-"  in author_surname:
-            author_surname = author_surname.split("-")[0]
-       
+        if "-"  in author_surname.replace("‐", "-"):
+            author_surname = author_surname.replace("‐", "-").split("-")[0]
+
         if author != ' ' :
             if not nation.get_raw(author_surname)['country']:
-                nation_author[author]['surname']['country_id'] = nation.get_raw(author_name)['country'][0]['country_id']
-                nation_author[author]['surname']['probability'] = nation.get_raw(author_name)['country'][0]['probability']
+                country = nation.get_raw(author_name)['country']
+                nation_author[author]['surname']['country_id'] = country[0]['country_id'] if country else ""
+                nation_author[author]['surname']['probability'] = country[0]['probability'] if country else  0.0
+                
             else:
-                nation_author[author]['surname']['country_id'] = nation.get_raw(author_surname)['country'][0]['country_id']
-                nation_author[author]['surname']['probability'] = nation.get_raw(author_surname)['country'][0]['probability']
-
+                country = nation.get_raw(author_surname)['country']
+                nation_author[author]['surname']['country_id'] = country[0]['country_id'] if country else ""
+                nation_author[author]['surname']['probability'] = country[0]['probability'] if country else 0.0
+        
         return nation_author

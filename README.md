@@ -14,7 +14,9 @@ ScraperGoogleScholar is a Python tool designed to predict the gender information
 
 Frequent searches on the web using Google Scholar may result in temporary bans lasting 24-48 hours. To prevent such situations, we have implemented a solution to bypass this issue and switch to a different proxy server during tool execution. To accomplish this, you will need a VPN service that allows you to switch between various servers. We recommend utilizing https://protonvpn.com/ for this purpose.
 
-**version 1.2.0**: Protonvpn-cli available for Linux. Now is posible automatize the change of vpn using a Protonvpn account credentials. Follow the instructions idicated in https://www.geeksforgeeks.org/how-to-install-protonvpn-in-linux/.
+**version 1.2.0**: Protonvpn-cli available for Linux. Now is possible automatize the change of vpn using a Protonvpn account credentials. Follow the instructions indicated in https://www.geeksforgeeks.org/how-to-install-protonvpn-in-linux/.
+
+**version 1.3.0**: Warning tags included in output messages.
 
 ## How to use
 
@@ -69,4 +71,5 @@ This tool has been developed based on the following git project: https://github.
 - Write setup.py.
 - Import module to PyPI.
 - Implement better error messages.
-- Detect error in names format for a proper prediction
+- Detect error in names format for a proper prediction.
+- Modules for logging and gender detection.
